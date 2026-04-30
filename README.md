@@ -1,3 +1,15 @@
+---
+title: AI Content Detector
+emoji: 🔍
+colorFrom: blue
+colorTo: indigo
+sdk: streamlit
+sdk_version: 1.39.0
+app_file: app.py
+pinned: false
+license: mit
+---
+
 # AI Content Detector — Bulk URL Analyzer
 
 A self-hostable Streamlit web app that takes up to **1,000 URLs at a time**,
