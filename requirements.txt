@@ -1,0 +1,8 @@
+streamlit==1.39.0
+trafilatura==1.12.2
+transformers==4.46.0
+torch==2.5.0
+httpx==0.27.2
+pandas==2.2.3
+huggingface-hub==0.26.0
+nest-asyncio==1.6.0
