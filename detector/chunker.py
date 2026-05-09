@@ -1,7 +1,7 @@
-"""Split long article text into 450-token windows with 50-token overlap.
+"""Split long article text into 450-token windows with 25-token overlap.
 
-DeBERTa-v3-large has a 512-token context limit. Per spec we use 450 + 50 overlap
-so the windowing is not flush against the model's hard limit (truncation in the
+DeBERTa-v3-large has a 512-token context limit. We use 450 + 25 overlap so the
+windowing is not flush against the model's hard limit (truncation in the
 tokenizer still kicks in at 512 to be safe).
 """
 
@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Iterable
 
 WINDOW_TOKENS = 450
-OVERLAP_TOKENS = 50
+OVERLAP_TOKENS = 25
 MAX_MODEL_TOKENS = 512
 
 
@@ -33,7 +33,7 @@ def chunk_text(text: str, tokenizer) -> list[str]:
     if len(ids) <= MAX_MODEL_TOKENS:
         return [text]
 
-    step = WINDOW_TOKENS - OVERLAP_TOKENS  # 400
+    step = WINDOW_TOKENS - OVERLAP_TOKENS  # 425
     chunks: list[str] = []
     start = 0
     while start < len(ids):

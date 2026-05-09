@@ -77,7 +77,7 @@ async def fetch_one(client: httpx.AsyncClient, url: str) -> FetchResult:
 
 async def fetch_all(
     urls: list[str],
-    concurrency: int = 20,
+    concurrency: int = 40,
     on_progress=None,
 ) -> list[FetchResult]:
     """Fetch all URLs in parallel up to `concurrency` at a time.

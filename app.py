@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import io
+import tempfile
 from typing import List
 
 import nest_asyncio
@@ -66,7 +67,7 @@ with st.sidebar:
     st.title("AI Content Detector")
     st.caption("Bulk URL analysis using the Desklib RAID-leader detector.")
 
-    concurrency = st.slider("Concurrency (parallel fetchers)", min_value=1, max_value=50, value=20)
+    concurrency = st.slider("Concurrency (parallel fetchers)", min_value=1, max_value=50, value=40)
     min_words = st.slider("Minimum word count", min_value=50, max_value=500, value=150, step=10)
 
     st.divider()
@@ -108,6 +109,18 @@ with csv_tab:
 
 with txt_tab:
     txt_file = st.file_uploader("Plain text, one URL per line", type=["txt"], key="txt_input")
+
+resume_file = st.file_uploader(
+    "Resume from previous results (optional)",
+    type=["csv"],
+    key="resume_input",
+    help=(
+        "Upload a prior results CSV to continue an interrupted batch without "
+        "re-processing finished URLs. Any URL already in the file with status "
+        "\"success\" will be skipped, and its prior result is carried into the "
+        "new output."
+    ),
+)
 
 
 def _gather_urls() -> List[str]:
@@ -165,6 +178,19 @@ if go and not analyze_disabled:
         progress_bar.progress(min(display, 1.0), text=f"{ev.stage}: {ev.done}/{ev.total}")
         status_line.caption(f"{ev.stage} → {ev.current_url}")
 
+    resume_path: str | None = None
+    if resume_file is not None:
+        try:
+            resume_file.seek(0)
+            tmp = tempfile.NamedTemporaryFile(suffix=".csv", delete=False)
+            tmp.write(resume_file.read())
+            tmp.flush()
+            tmp.close()
+            resume_path = tmp.name
+        except Exception as e:
+            st.error(f"Could not read resume CSV: {e}")
+            resume_path = None
+
     with st.spinner("Running pipeline…"):
         df = asyncio.run(
             analyze_urls(
@@ -172,6 +198,7 @@ if go and not analyze_disabled:
                 min_words=min_words,
                 concurrency=concurrency,
                 on_progress=_on_progress,
+                skip_existing_csv=resume_path,
             )
         )
 

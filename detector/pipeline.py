@@ -148,13 +148,32 @@ ProgressCallback = Callable[[ProgressEvent], None]
 async def analyze_urls(
     urls: list[str],
     min_words: int = 150,
-    concurrency: int = 20,
+    concurrency: int = 40,
     on_progress: ProgressCallback | None = None,
+    skip_existing_csv: str | None = None,
 ) -> pd.DataFrame:
-    """Run the full pipeline. Returns a DataFrame in detailed-CSV column order."""
+    """Run the full pipeline. Returns a DataFrame in detailed-CSV column order.
+
+    If `skip_existing_csv` points to a prior results CSV, any URLs in it with
+    status == "success" are skipped, and those prior rows are carried into the
+    output so the result is the union of "already done" + "newly processed".
+    """
     urls = normalize_urls(urls)
+
+    prior_rows = pd.DataFrame(columns=list(AnalysisRow(url="").as_dict().keys()))
+    if skip_existing_csv:
+        prior = pd.read_csv(skip_existing_csv)
+        if "url" in prior.columns and "status" in prior.columns:
+            done_mask = prior["status"].astype(str) == "success"
+            already_done = set(prior.loc[done_mask, "url"].astype(str).tolist())
+            if already_done:
+                urls = [u for u in urls if u not in already_done]
+                prior_rows = prior.loc[done_mask].copy()
+
     total = len(urls)
     if total == 0:
+        if not prior_rows.empty:
+            return prior_rows.reset_index(drop=True)
         return pd.DataFrame(columns=list(AnalysisRow(url="").as_dict().keys()))
 
     # Stage 1 — fetch URLs concurrently.
@@ -180,6 +199,8 @@ async def analyze_urls(
             on_progress(ProgressEvent(done=i, total=total, current_url=fr.url, stage="analyzing"))
 
     df = pd.DataFrame([r.as_dict() for r in rows])
+    if not prior_rows.empty:
+        df = pd.concat([prior_rows, df], ignore_index=True)
     return df
 
 
